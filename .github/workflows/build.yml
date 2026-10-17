@@ -1,0 +1,40 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Build (Release)
+        run: msbuild Aplat.csproj /t:Rebuild /p:Configuration=Release /nologo /verbosity:minimal
+
+      # Tests that need neither a window nor OpenGL.
+      - name: Tests
+        shell: pwsh
+        run: |
+          foreach ($t in 'matchtest\MatchTests.cs', 'updatetest\UpdateTests.cs', 'modeltest\ModelTests.cs') {
+            Write-Host "== $t"
+            powershell -NoProfile -ExecutionPolicy Bypass -File tools\paneltest\run.ps1 -Source "tools\$t"
+            if ($LASTEXITCODE -ne 0) { throw "$t failed" }
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Aplat-Release
+          path: |
+            bin/Release/Aplat.exe
+            bin/Release/Aplat.exe.config
+            bin/Release/OpenTK.dll
+            bin/Release/OpenTK.GLControl.dll

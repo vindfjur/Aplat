@@ -1,0 +1,24 @@
+# build output
+/bin/
+/obj/
+/dist/
+.vs/
+*.user
+*.suo
+tools/iconscene/gen.exe
+# local-only helpers and OS noise (build kitchen kept out of the published source)
+tools/brand/
+tools/utm/
+tools/icons/
+tools/loc/
+tools/coverage/
+/.local/
+*.lnk
+.DS_Store
+__pycache__/
+*.pyc
+*.whl
+
+# coverage
+/coverage/
+tools/coverage/.tools/

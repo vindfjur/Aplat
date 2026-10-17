@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Aplat</RootNamespace>
+    <AssemblyName>Aplat</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <LangVersion>7.3</LangVersion>
+    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="OpenTK">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(MSBuildThisFileDirectory)libs\OpenTK.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="OpenTK.GLControl">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>$(MSBuildThisFileDirectory)libs\OpenTK.GLControl.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Controls\SceneView.cs" />
+    <Compile Include="Controls\SceneView.Overlays.cs">
+      <DependentUpon>SceneView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\SceneView.Live.cs">
+      <DependentUpon>SceneView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\SceneView.TextEdit.cs">
+      <DependentUpon>SceneView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\SceneView.Lasso.cs" />
+    <Compile Include="Controls\SceneView.EditShape.cs" />
+    <Compile Include="Controls\SceneView.Ruler.cs" />
+    <Compile Include="Controls\SceneView.ObjectEraser.cs">
+      <DependentUpon>SceneView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\SceneView.CanvasBack.cs">
+      <DependentUpon>SceneView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\LiveItem.cs" />
+    <Compile Include="Controls\SceneView.Layout.cs">
+      <DependentUpon>SceneView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\PropertiesPanel.cs" />
+    <Compile Include="Controls\PropertiesPanel.Layout.cs">
+      <DependentUpon>PropertiesPanel.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\AboutDialog.cs" />
+    <Compile Include="Dialogs\CanvasSettingsDialog.cs" />
+    <Compile Include="Dialogs\TextInputDialog.cs" />
+    <Compile Include="Dialogs\TextInputDialog.Layout.cs">
+      <DependentUpon>TextInputDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\PanelSettingsDialog.cs" />
+    <Compile Include="Dialogs\PanelSettingsDialog.Layout.cs">
+      <DependentUpon>PanelSettingsDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Primitives\CanvasFactory.cs" />
+    <Compile Include="Primitives\TextMeshBuilder.cs" />
+    <Compile Include="IO\ExportManager.cs" />
+    <Compile Include="IO\SceneFileManager.cs" />
+    <Compile Include="IO\BlobPacker.cs" />
+    <Compile Include="IO\UndoHistory.cs" />
+    <Compile Include="Features.cs" />
+    <Compile Include="MainForm.cs" />
+    <Compile Include="MainForm.Layout.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.History.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.Export.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.Settings.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.Scene.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.Tools.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.SceneList.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.Ruler.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.Lasso.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.PanelDock.cs" />
+    <Compile Include="MainForm.SpinCard.cs" />
+    <Compile Include="MainForm.Overlays.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.Commands.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.Theme.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.KeyboardText.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\PropertiesPanel.Surface.cs" />
+    <Compile Include="Rendering\GLRenderer.LocalLights.cs" />
+    <Compile Include="Rendering\GLRenderer.Transparency.cs" />
+    <Compile Include="Rendering\GLRenderer.Shadows.cs" />
+    <Compile Include="Rendering\ShadowMath.cs" />
+    <Compile Include="MainForm.Perf.cs" />
+    <Compile Include="MainForm.Shadows.cs" />
+    <Compile Include="Rendering\CanvasBack.cs" />
+    <Compile Include="Models\InkJournal.cs" />
+    <Compile Include="Models\InkOps.cs" />
+    <Compile Include="Models\PaintTiles.cs" />
+    <Compile Include="Models\Material.cs" />
+    <Compile Include="Models\Mesh.cs" />
+    <Compile Include="Models\MeshEditor.cs" />
+    <Compile Include="Models\Scene.cs" />
+    <Compile Include="Models\SceneObject.cs" />
+    <Compile Include="Models\Vec3.cs" />
+    <Compile Include="Localization\Loc.cs" />
+    <Compile Include="Localization\EnglishTable.cs" />
+    <Compile Include="Localization\English.cs" />
+    <Compile Include="Primitives\PrimitiveFactory.cs" />
+    <Compile Include="Primitives\RulerFactory.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Rendering\Camera.cs" />
+    <Compile Include="Rendering\GLRenderer.cs" />
+    <Compile Include="Rendering\SceneGeometry.cs" />
+    <Compile Include="UI\Theme.cs" />
+    <Compile Include="UI\ThemePalette.cs" />
+    <Compile Include="UI\ThemeManager.cs" />
+    <Compile Include="UI\IconFactory.cs" />
+    <Compile Include="UI\IconPaths.cs" />
+    <Compile Include="UI\ScrollHost.cs" />
+    <Compile Include="UI\InspectorPanel.cs" />
+    <Compile Include="UI\SectionHeader.cs" />
+    <Compile Include="UI\HudReadout.cs" />
+    <Compile Include="UI\ToolbarDock.cs" />
+    <Compile Include="UI\KeyHintLabel.cs" />
+    <Compile Include="UI\DragNumber.cs" />
+    <Compile Include="UI\CommandKeywords.cs" />
+    <Compile Include="UI\CommandMatcher.cs" />
+    <Compile Include="UI\CommandPalette.cs" />
+    <Compile Include="UI\TextKit.cs" />
+    <Compile Include="UI\SegmentedControl.cs" />
+    <Compile Include="UI\ModernCheckBox.cs" />
+    <Compile Include="UI\SwitchRow.cs" />
+    <Compile Include="UI\ToggleStrip.cs" />
+    <Compile Include="UI\AppIcon.cs" />
+    <Compile Include="UpdateCheck.cs" />
+    <Compile Include="SingleInstance.cs" />
+    <Compile Include="MainForm.Eyedropper.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.OpenFile.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="MainForm.Update.cs">
+      <DependentUpon>MainForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="UI\HotkeyTable.cs" />
+    <Compile Include="Dialogs\HotkeysDialog.cs" />
+    <Compile Include="UI\ModernTabControl.cs" />
+    <Compile Include="UI\ModernToolStripRenderer.cs" />
+    <Compile Include="UI\RoundedButton.cs" />
+    <Compile Include="UI\ModernSlider.cs" />
+    <Compile Include="UI\ColorSwatch.cs" />
+    <Compile Include="UI\ValueLabel.cs" />
+    <Compile Include="UI\OverlayWindow.cs" />
+    <Compile Include="UI\PanelDocking.cs" />
+    <Compile Include="UI\DockPreview.cs" />
+    <Compile Include="UI\PerfHud.cs" />
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="icon.ico" />
+    <EmbeddedResource Include="icon.ico">
+      <LogicalName>Aplat.icon.ico</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="assets\brand\about.png">
+      <LogicalName>Aplat.about.png</LogicalName>
+    </EmbeddedResource>
+    <None Include="App.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
