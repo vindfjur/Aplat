@@ -82,17 +82,19 @@ depend on the zoom.
 
 ### Painting on 3D shapes
 
-The brush, pencil, pen, marker, fill, eyedropper and eraser also work on the surface of 3D shapes; shapes and text
-there become pixels at once and are not kept editable. The object eraser, area selection and lasso work on the
-canvas only. Text on a 3D shape is entered through a dialog.
+The brush, pencil, pen, marker, fill, eyedropper and eraser also work on the surface of 3D shapes. Shapes and text work as on the canvas: they are
+live elements (move, resize, rotate, restyle) while you edit them, they lie on the surface as the camera sees
+them, and they are written into the paint when you commit them. The view is fixed while an element is live:
+moving the camera commits it. The object eraser, area
+selection and lasso work on the canvas only.
 
 | Feature | Canvas | 3D shape |
 |---|---|---|
 | Brush, pencil, pen, marker | yes | yes |
 | Fill, eyedropper | yes | yes |
 | Precise eraser | yes | yes |
-| Shapes | live, editable | pixels at once |
-| Text | typed in place, stays editable | dialog, pixels at once |
+| Shapes | live, editable | live, editable; the view is fixed meanwhile |
+| Text | typed in place, editable until committed | typed in place, editable until committed; the view is fixed meanwhile |
 | Object eraser | yes | no |
 | Area, lasso | yes | no |
 
@@ -435,8 +437,8 @@ The same list is available in the program: Help → Keyboard shortcuts.
   the oldest ones are quietly merged into the background: the object eraser and the lasso no longer see them, and
   they can be removed only with the precise eraser. There is no warning and it cannot be switched off. The picture
   of a project from an old format is a background from the start.
-- **Painting on 3D shapes.** The object eraser, area selection and lasso work on the canvas only; shapes and text
-  on a 3D shape become pixels at once (see the [table](#painting-on-3d-shapes)).
+- **Painting on 3D shapes.** The object eraser, area selection and lasso work on the canvas only; shapes and text on a 3D
+  shape become pixels when committed (see the [table](#painting-on-3d-shapes)).
 - **Ruler.** Actions with it are not recorded in the undo history.
 - **Shape mode.** Only moving vertices, edges and faces; no extrusion, no new faces and no cuts.
 - **Lighting.** Local lights cast no shadows; shadows need OpenGL 2.0 (see [Lighting limitations](#lighting-limitations)).

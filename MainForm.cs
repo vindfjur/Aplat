@@ -86,7 +86,6 @@ namespace Aplat
             };
             sceneView.BrushColorPicked += (s, c) => { SetBrushSwatch(c); AfterEyedropperPick(); };
             SetBrushSwatch(sceneView.BrushColor);   // swatch + palette ring match the real brush
-            sceneView.Text2DClicked += OnText2DClicked;
             // Live shapes / text / cut-outs (editable until merged into the canvas).
             sceneView.LiveChanged += (s, e) =>
             {

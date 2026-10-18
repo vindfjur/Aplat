@@ -59,7 +59,7 @@ namespace Aplat.Controls
         // Layer px per 1024-sheet px of the live element's canvas (font sizes, strokes).
         public float LiveLayerScale
         {
-            get { return _liveCanvas != null ? Material.PaintScale(PaintLayerFor(_liveCanvas)) : 1f; }
+            get { return _surf != null ? 1f : _liveCanvas != null ? Material.PaintScale(PaintLayerFor(_liveCanvas)) : 1f; }
         }
         public LiveItem Live        { get { return _live; } }
 
@@ -84,6 +84,7 @@ namespace Aplat.Controls
         {
             get
             {
+                if (_surf != null) return 1f;
                 if (_liveCanvas == null || !CanvasCorners(_liveCanvas, out Vec3 tl, out Vec3 tr, out Vec3 _, out Vec3 bl))
                     return 1f;
                 var layer = PaintLayerFor(_liveCanvas);
@@ -97,6 +98,7 @@ namespace Aplat.Controls
         private Rectangle ItemAreaInLayer(LiveItem item)
         {
             var layer = PaintLayerFor(_liveCanvas);
+            if (_surf != null) return new Rectangle(Point.Empty, layer.Size);
             float k = LiveK;
             Rectangle r = item.PaintBounds(layer.Width, (int)Math.Ceiling(layer.Height * k));
             if (r.IsEmpty) return r;
@@ -117,6 +119,7 @@ namespace Aplat.Controls
 
         private PointF LayerToScreen(PointF p)
         {
+            if (_surf != null) return p;   // a text on a shape lives in screen space
             var layer = PaintLayerFor(_liveCanvas);
             if (!CanvasCorners(_liveCanvas, out Vec3 tl, out Vec3 tr, out Vec3 _, out Vec3 bl)) return PointF.Empty;
             float u = p.X / layer.Width, v = p.Y / LiveK / layer.Height;
@@ -127,6 +130,7 @@ namespace Aplat.Controls
         {
             p = PointF.Empty;
             if (_liveCanvas == null) return false;
+            if (_surf != null) { p = new PointF(s.X, s.Y); return true; }
             if (!CanvasCorners(_liveCanvas, out Vec3 tl, out Vec3 tr, out Vec3 br, out Vec3 bl)) return false;
             var src = new[] { Proj(tl), Proj(tr), Proj(br), Proj(bl) };
             foreach (var q in src) if (float.IsNaN(q.X) || q.X < -9000) return false;
@@ -183,7 +187,7 @@ namespace Aplat.Controls
         // ── Session ───────────────────────────────────────────────────
         private int LivePenWidth(Bitmap layer)
         {
-            return Math.Max(1, (int)Math.Round(BrushRadius * Material.PaintScale(layer)));
+            return Math.Max(1, (int)Math.Round(BrushRadius * (_surf != null ? 1f : Material.PaintScale(layer))));
         }
 
         private Color LiveColor()
@@ -194,6 +198,7 @@ namespace Aplat.Controls
         private void StartLive(SceneObject canvas, LiveItem item, Bitmap baseLayer, Bitmap cancelLayer)
         {
             _liveCanvas = canvas;
+            if (canvas.PrimitiveType == "Canvas") EndSurface();
             _live       = item;
             _liveBase   = baseLayer;
             _liveCancel = cancelLayer;
@@ -206,6 +211,7 @@ namespace Aplat.Controls
         private void RenderLive()
         {
             if (_live == null || _liveCanvas == null || _liveBase == null) return;
+            if (_surf != null) { RenderSurfaceLive(); return; }
             var layer = PaintLayerFor(_liveCanvas);
             Rectangle now = ItemAreaInLayer(_live);
             Rectangle dirty = _liveDrawn.IsEmpty ? now : (now.IsEmpty ? _liveDrawn : Rectangle.Union(_liveDrawn, now));
@@ -256,6 +262,11 @@ namespace Aplat.Controls
                 _reopenOps = null;
                 _live.Dispose(); _liveBase?.Dispose(); _liveCancel?.Dispose();
             }
+            else if (_surf != null)
+            {
+                // On a shape the element becomes plain paint: nothing to reopen.
+                _live.Dispose(); _liveBase?.Dispose(); _liveCancel?.Dispose();
+            }
             else
             {
                 _reopenItem   = _live;
@@ -265,6 +276,7 @@ namespace Aplat.Controls
                 _reopenCut    = _liveCutRect;
             }
             _live = null; _liveCanvas = null; _liveBase = null; _liveCancel = null;
+            EndSurface();
             _liveCutRect = Rectangle.Empty;
             _liveDrag = LiveDrag.None;
             FlushPaintEncoding();
@@ -420,6 +432,7 @@ namespace Aplat.Controls
             _liveCancel?.Dispose(); _liveCancel = null;
             _liveStart?.Dispose();  _liveStart = null;
             _liveCanvas = null;
+            EndSurface();
             _liveDrawn  = Rectangle.Empty;
             _liveCutRect = Rectangle.Empty;
             _liveDrag   = LiveDrag.None;
@@ -439,15 +452,16 @@ namespace Aplat.Controls
         }
 
         // ── Creation ──────────────────────────────────────────────────
-        // Shape tools on the canvas start a live shape; elsewhere (3-D objects) the
-        // classic draw-and-stamp path is used.
+        // Shapes on a sheet use sheet coordinates; on a mesh they use a frozen
+        // camera projection, so dragging across atlas islands stays continuous.
         private bool BeginLiveShape(SceneObject canvas, Point pt)
         {
-            if (canvas == null || canvas.PrimitiveType != "Canvas") return false;
+            if (canvas == null) return false;
             CommitLive();
             TransformStarted?.Invoke(this, EventArgs.Empty);   // one undo step per element
 
             var layer = PaintLayerFor(canvas);
+            if (canvas.PrimitiveType != "Canvas") _surf = CaptureSurfaceMap();
             _liveCanvas = canvas;                                // ScreenToLayer needs it
             if (!ScreenToLayer(pt, out PointF p)) { _liveCanvas = null; return false; }
             var item = new LiveItem
@@ -467,43 +481,6 @@ namespace Aplat.Controls
 
         // Host entry for the text tool: the text becomes a live element centred on
         // the click. On a 3-D object it is stamped straight away.
-        public void BeginLiveText(SceneObject target, PointF uv, string text, Font font, Color color)
-        {
-            if (target == null || string.IsNullOrEmpty(text)) return;
-            CommitLive();
-            TransformStarted?.Invoke(this, EventArgs.Empty);
-
-            var layer = PaintLayerFor(target);
-            var item = new LiveItem
-            {
-                Kind       = LiveKind.Text,
-                Text       = text,
-                FontFamily = font.FontFamily.Name,
-                FontStyle  = font.Style,
-                FontPx     = font.SizeInPoints * 96f / 72f * Material.PaintScale(layer),
-                Color      = Color.FromArgb(Math.Max(0, Math.Min(255, BrushOpacity * 255 / 100)), color),
-            };
-            item.Normalize();
-            var sz = item.Box.Size;
-
-            if (target.PrimitiveType != "Canvas")
-            {
-                item.SetBox(new PointF(uv.X * layer.Width, uv.Y * layer.Height), sz.Width, sz.Height);
-                using (var g = Graphics.FromImage(layer)) item.Render(g);
-                item.Dispose();
-                target.Material.MarkPaintDirty();
-                _lastPaintMaterial = target.Material;
-                FlushPaintEncoding();
-                ObjectTransformed?.Invoke(this, EventArgs.Empty);
-                Redraw();
-                return;
-            }
-            _liveCanvas = target;
-            item.SetBox(new PointF(uv.X * layer.Width, uv.Y * layer.Height * LiveK), sz.Width, sz.Height);
-            StartLive(target, item, new Bitmap(layer), null);
-            LiveChanged?.Invoke(this, EventArgs.Empty);
-        }
-
         // Rect-select finished: the region becomes a live image; Esc puts it back.
         private void BeginLiveCut(SceneObject canvas, Rectangle r, Bitmap preCut)
         {
@@ -809,6 +786,7 @@ namespace Aplat.Controls
         private void DrawLiveGL()
         {
             if (_live == null || _liveCanvas == null) return;
+            if (SurfaceCameraMoved()) { BeginInvoke(new Action(CommitLive)); }   // a text on a shape is tied to its view
             BeginScreenOverlay();
             GL.Enable(EnableCap.LineSmooth);
             Color acc = Aplat.UI.Theme.Accent;

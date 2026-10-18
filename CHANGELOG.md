@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-10-18
+
+### Added
+
+- Text and shapes on the surface of a 3D shape are live elements, like on the canvas: text is typed in place,
+  and both can be moved, resized, rotated and restyled until they are committed. They lie on the surface as the
+  camera sees them, across the edges of faces, and are hidden where another part of the scene covers the surface.
+
+### Removed
+
+- The text dialog for 3D shapes.
+
 ## [1.0.0] - 2026-10-18
 
 First public release.
@@ -35,5 +47,6 @@ First public release.
 
 See the Limitations section of [FEATURES.md](FEATURES.md#limitations).
 
-[Unreleased]: https://github.com/vindfjur/Aplat/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/vindfjur/Aplat/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/vindfjur/Aplat/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/vindfjur/Aplat/releases/tag/v1.0.0

@@ -42,6 +42,7 @@ check the built `Aplat.exe` and need Windows, so build Release first.
 | `tools/perftest` | the FPS and load plate (View → Show FPS) and the About dialog | `tools/paneltest/run.ps1 -Source tools\perftest\PerfTests.cs` |
 | `tools/editshapetest` | the Shape mode with real mouse input (`EditShapeTests.cs`), and painting on a deformed shape: picking against an independent ray cast, dab placement, paint kept on its faces, timings (`PaintDeformedTests.cs`) | `tools/paneltest/run.ps1 -Source tools\editshapetest\EditShapeTests.cs` (or `PaintDeformedTests.cs`) |
 | `tools/suntest` | the light marker (sun symbol and arrow) in both themes and at two zoom levels | `tools/paneltest/run.ps1 -Source tools\suntest\SunMarkerTests.cs` |
+| `tools/texttest` | text and shapes on a 3D shape: upright from every side, one undo step, Esc removes them, no streaks across atlas islands, no painting through occluders | `tools/paneltest/run.ps1 -Source tools\texttest\TextOrientationTests.cs` (and `SurfacePaintingTests.cs`) |
 | `tools/loctest` | the English interface has no Russian text left (windows, menus, dialogs) | `tools/paneltest/run.ps1 -Source tools\loctest\LocTests.cs` |
 
 `tools/exporttest/ExportDump.cs` is not a test but a helper that writes sample OBJ, STL and FBX files to open in

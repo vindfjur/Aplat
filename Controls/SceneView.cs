@@ -17,13 +17,6 @@ namespace Aplat.Controls
     public enum ToolMode { Select, Move, Rotate, Scale, Paint, Hand, EditShape }
     public enum BrushKind { Brush, Pencil, Pen, Marker, Eyedropper, Fill, Eraser, Text2D, Select2D, ShapeLine, ShapeRect, ShapeEllipse, ShapeTriangle, ObjectEraser, Lasso }
 
-    public class Text2DEventArgs : EventArgs
-    {
-        public SceneObject Canvas;
-        public PointF      Uv;
-        public Text2DEventArgs(SceneObject canvas, PointF uv) { Canvas = canvas; Uv = uv; }
-    }
-
     // Live viewport. Rendering runs on the GPU through an OpenTK GLControl child
     // (real depth buffer, perspective-correct textures, fast). All the editing
     // logic — picking, gizmos, fly camera, nudging, projection paint — lives here.
@@ -157,14 +150,7 @@ namespace Aplat.Controls
         private StrokeStyle  _strokeStyle;
         private int          _strokeArgb, _strokeOpacity, _strokeRadius;
 
-        // ── Shape drawing state ───────────────────────────────────
-        private bool        _shapeDragging;
-        private SceneObject _shapeCanvas;
-        private PointF      _shapeStartUv;
-        private PointF      _shapeCurrentUv;
-        private Bitmap      _shapeBaseLayer;
-
-        // Text, cut-out regions and canvas shapes are live elements — see SceneView.Live.cs.
+        // Text, cut-out regions and shapes are live elements — see SceneView.Live.cs.
         private SceneObject _selCanvas;        // canvas of the rect-select rubber band
 
         // Rect-selection rubber band (before the region becomes a fragment).
@@ -180,7 +166,6 @@ namespace Aplat.Controls
         public event EventHandler<Color>       BrushColorPicked; // eyedropper result
         public event Action<Point>             ContextMenuRequested; // right-click (no orbit drag)
         public event EventHandler              DuplicateForDrag;     // Alt+drag a gizmo → clone first
-        public event EventHandler<Text2DEventArgs> Text2DClicked;   // text-tool click on canvas
         public event EventHandler              ViewChanged;
         public event EventHandler<string[]>    FilesDropped;        // files dragged onto the viewport
         public event EventHandler<int>         BrushWheel;          // Alt+wheel → brush size delta
@@ -726,10 +711,9 @@ namespace Aplat.Controls
                     if (PickPaintTarget(e.Location, out SceneObject tObj, out PointF tUv))
                     {
                         if (IsLocked(tObj)) { Notify?.Invoke(this, Loc.T("Объект заблокирован")); return; }
-                        // The sheet: type in place. A 3-D surface has no live text, so the
-                        // host asks for the words and stamps them there.
+                        // Both the sheet and a 3-D surface support in-place text.
                         if (tObj.PrimitiveType == "Canvas") BeginTextAt(tObj, e.Location);
-                        else Text2DClicked?.Invoke(this, new Text2DEventArgs(tObj, tUv));
+                        else BeginSurfaceText(tObj, e.Location);
                     }
                     return;
                 }
@@ -737,14 +721,7 @@ namespace Aplat.Controls
                 {
                     if (!PickPaintTarget(e.Location, out SceneObject sObj, out PointF sUv)) return;
                     if (IsLocked(sObj)) { Notify?.Invoke(this, Loc.T("Объект заблокирован")); return; }
-                    if (BeginLiveShape(sObj, e.Location)) return;   // canvas: live, editable shape
-                    _shapeCanvas    = sObj;
-                    _shapeStartUv   = sUv;
-                    _shapeCurrentUv = sUv;
-                    _shapeDragging  = true;
-                    var sl = sObj.Material.PaintLayer;
-                    _shapeBaseLayer = sl != null ? new Bitmap(sl) : null;
-                    TransformStarted?.Invoke(this, EventArgs.Empty);
+                    BeginLiveShape(sObj, e.Location);
                     return;
                 }
 
@@ -822,20 +799,6 @@ namespace Aplat.Controls
             {
                 EndSelectDrag();
                 ObjectTransformed?.Invoke(this, EventArgs.Empty);
-            }
-
-            if (_shapeDragging && e.Button == MouseButtons.Left)
-            {
-                _shapeDragging = false;
-                PointF endUv = _shapeCurrentUv;
-                if (PickPaintTarget(e.Location, out SceneObject _, out PointF uv2)) endUv = uv2;
-                CommitShape(_shapeCanvas, endUv);
-                _shapeBaseLayer?.Dispose();
-                _shapeBaseLayer = null;
-                _shapeCanvas    = null;
-                _painting       = false;
-                ObjectTransformed?.Invoke(this, EventArgs.Empty);
-                Redraw();
             }
 
             if (e.Button == MouseButtons.Left) EditMouseUp();
@@ -918,16 +881,6 @@ namespace Aplat.Controls
                     _selCurUv = sUv2;
                     DrawSelectMarquee();
                 }
-                return;
-            }
-
-            if (_shapeDragging && (Control.MouseButtons & MouseButtons.Left) == MouseButtons.Left)
-            {
-                if (PickPaintTarget(e.Location, out SceneObject _, out PointF uv2))
-                    _shapeCurrentUv = uv2;
-                CommitShape(_shapeCanvas, _shapeCurrentUv);
-                Redraw();
-                ObjectTransformed?.Invoke(this, EventArgs.Empty);
                 return;
             }
 
@@ -1102,7 +1055,7 @@ namespace Aplat.Controls
         {
             if (!_spin || _spinPaused) return;
             if (mouseHeld || _orbitDrag || _panDrag || _transformDrag || _painting ||
-                _shapeDragging || _selDragging || _lassoDragging || _liveDrag != LiveDrag.None) return;
+                _selDragging || _lassoDragging || _liveDrag != LiveDrag.None) return;
 
             float step = _spinSpeed * dt;
             if (Math.Abs(step) < 1e-5f) return;
@@ -1739,6 +1692,7 @@ namespace Aplat.Controls
         private Rectangle PaintBlob(SceneObject obj, Bitmap layer, Vec3 P, Vec3 n,
                                     Point screenCenter, int radiusPx, bool soft, bool erase)
         {
+            var visibility = CaptureSurfaceMap();
             float worldR = WorldRadius(P, radiusPx);
             if (worldR < 1e-4f) worldR = 0.05f;
 
@@ -1801,13 +1755,14 @@ namespace Aplat.Controls
                         {
                             for (int x = x0; x <= x1; x++)
                             {
-                                if (!BaryF(ta, tb, tc, x + 0.5f, y + 0.5f,
-                                           out float l0, out float l1, out float l2)) continue;
+                                if (!PaintBary(ta, tb, tc, x + 0.5f, y + 0.5f, i, face.Length,
+                                               out float l0, out float l1, out float l2)) continue;
 
                                 // Camera space is an affine image of world space, so the barycentrics
                                 // carry over: no per-texel rotation (and its trigonometry).
-                                PointF sp = _camera.ProjectCamera(ca * l0 + cb * l1 + cc * l2, W, H);
-                                if (sp.X < -9000) continue;
+                                Vec3 camPoint = ca * l0 + cb * l1 + cc * l2;
+                                PointF sp = _camera.ProjectCamera(camPoint, W, H);
+                                if (sp.X < -9000 || !visibility.Visible(sp, camPoint.Z)) continue;
 
                                 float dx = sp.X - cx;
                                 float dy = sp.Y - cy;
@@ -2230,7 +2185,7 @@ namespace Aplat.Controls
         // resolution, 3-D shapes at the atlas resolution.
         private static Bitmap PaintLayerFor(SceneObject o)
         {
-            if (o.PrimitiveType != "Canvas") return o.Material.EnsurePaintLayer();
+            if (o.PrimitiveType != "Canvas") return o.Material.EnsurePaintLayer(Material.SurfacePaintSize);
             var layer = o.Material.EnsurePaintLayer(Material.CanvasPaintSize);
             o.Material.EnsureInk();   // before anything is drawn: the journal must see the layer's first state
             return layer;
@@ -2414,7 +2369,6 @@ namespace Aplat.Controls
         private void BeginSelectDrag(SceneObject canvas, PointF uv, Point screen)
         {
             _selTexelScale = TexelsPerScreenPixel(canvas, uv, screen);
-            _shapeCanvas  = null;
             _selDragging  = true;
             _selStartUv   = uv;
             _selCurUv     = uv;
@@ -2519,102 +2473,6 @@ namespace Aplat.Controls
         {
             return k == BrushKind.ShapeLine || k == BrushKind.ShapeRect ||
                    k == BrushKind.ShapeEllipse || k == BrushKind.ShapeTriangle;
-        }
-
-        // Restore base snapshot + draw current shape; called on every mouse-move and on mouse-up.
-        private void CommitShape(SceneObject canvas, PointF endUv)
-        {
-            if (canvas == null) return;
-            var layer = canvas.Material.EnsurePaintLayer(Material.CanvasPaintSize);
-            int w = layer.Width, h = layer.Height;
-
-            int x1   = (int)(_shapeStartUv.X * w);
-            int y1   = (int)(_shapeStartUv.Y * h);
-            int x2   = (int)(endUv.X          * w);
-            int y2   = (int)(endUv.Y          * h);
-            int penW = Math.Max(1, (int)Math.Round(BrushRadius * Material.PaintScale(layer)));
-            _lastPaintMaterial = canvas.Material;
-            int aVal = BrushOpacity * 255 / 100;
-
-            // Modifiers (live during the drag, like in classic editors):
-            //   Shift — filled shape;  Ctrl — regular shape (square / circle / 45° line).
-            bool fill    = (Control.ModifierKeys & Keys.Shift)   == Keys.Shift;
-            bool regular = (Control.ModifierKeys & Keys.Control) == Keys.Control;
-            if (regular)
-            {
-                int dx = x2 - x1, dy = y2 - y1;
-                if (PaintKind == BrushKind.ShapeLine)
-                {
-                    // Snap the line to horizontal / vertical / diagonal.
-                    if (Math.Abs(dx) > 2 * Math.Abs(dy))      y2 = y1;
-                    else if (Math.Abs(dy) > 2 * Math.Abs(dx)) x2 = x1;
-                    else
-                    {
-                        int m = Math.Max(Math.Abs(dx), Math.Abs(dy));
-                        x2 = x1 + Math.Sign(dx) * m;
-                        y2 = y1 + Math.Sign(dy) * m;
-                    }
-                }
-                else
-                {
-                    int m = Math.Max(Math.Abs(dx), Math.Abs(dy));
-                    x2 = x1 + (dx < 0 ? -m : m);
-                    y2 = y1 + (dy < 0 ? -m : m);
-                }
-            }
-
-            // One Graphics for both steps (this runs on every mouse-move of the drag):
-            // restore the pre-shape snapshot, then draw the current preview shape.
-            using (var gShape = Graphics.FromImage(layer))
-            using (var pen    = new Pen(Color.FromArgb(aVal, BrushColor), penW))
-            {
-                gShape.CompositingMode = CompositingMode.SourceCopy;
-                if (_shapeBaseLayer != null)
-                    gShape.DrawImage(_shapeBaseLayer, 0, 0, w, h);
-                else
-                    gShape.Clear(Color.Transparent);
-                gShape.CompositingMode = CompositingMode.SourceOver;
-                gShape.SmoothingMode = SmoothingMode.AntiAlias;
-                using (var br = new SolidBrush(Color.FromArgb(aVal, BrushColor)))
-                switch (PaintKind)
-                {
-                    case BrushKind.ShapeLine:
-                        gShape.DrawLine(pen, x1, y1, x2, y2);
-                        break;
-                    case BrushKind.ShapeRect:
-                        if (x1 != x2 && y1 != y2)
-                        {
-                            var rc = Rectangle.FromLTRB(Math.Min(x1, x2), Math.Min(y1, y2),
-                                                        Math.Max(x1, x2), Math.Max(y1, y2));
-                            if (fill) gShape.FillRectangle(br, rc);
-                            gShape.DrawRectangle(pen, rc);
-                        }
-                        break;
-                    case BrushKind.ShapeEllipse:
-                        if (x1 != x2 && y1 != y2)
-                        {
-                            var rc = Rectangle.FromLTRB(Math.Min(x1, x2), Math.Min(y1, y2),
-                                                        Math.Max(x1, x2), Math.Max(y1, y2));
-                            if (fill) gShape.FillEllipse(br, rc);
-                            gShape.DrawEllipse(pen, rc);
-                        }
-                        break;
-                    case BrushKind.ShapeTriangle:
-                        if (x1 != x2 && y1 != y2)
-                        {
-                            var tri = new Point[]
-                            {
-                                new Point((x1 + x2) / 2, Math.Min(y1, y2)),
-                                new Point(Math.Min(x1, x2), Math.Max(y1, y2)),
-                                new Point(Math.Max(x1, x2), Math.Max(y1, y2))
-                            };
-                            if (fill) gShape.FillPolygon(br, tri);
-                            gShape.DrawPolygon(pen, tri);
-                        }
-                        break;
-                }
-            }
-            canvas.Material.MarkPaintDirty();
         }
 
         // ── Frame capture (GL ReadPixels) ─────────────────────────

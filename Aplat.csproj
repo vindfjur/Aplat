@@ -61,6 +61,9 @@
     <Compile Include="Controls\SceneView.Live.cs">
       <DependentUpon>SceneView.cs</DependentUpon>
     </Compile>
+    <Compile Include="Controls\SceneView.FaceText.cs">
+      <DependentUpon>SceneView.cs</DependentUpon>
+    </Compile>
     <Compile Include="Controls\SceneView.TextEdit.cs">
       <DependentUpon>SceneView.cs</DependentUpon>
     </Compile>

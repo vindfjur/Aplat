@@ -15,6 +15,7 @@ namespace Aplat.Models
     public class Material
     {
         public const int PaintSize = 1024;        // paint-atlas resolution of 3-D shapes
+        public const int SurfacePaintSize = 2048; // finer atlas for projected text and thin outlines
         public const int CanvasPaintSize = 2048;  // the drawing sheet: crisp strokes when zoomed in
 
         public int ColorArgb { get; set; }

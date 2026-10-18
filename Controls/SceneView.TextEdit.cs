@@ -55,8 +55,8 @@ namespace Aplat.Controls
             return c != null && (c == _gl || c == this || Contains(c));
         }
 
-        private float PtToPx(float pt, Bitmap layer) { return pt * 96f / 72f * Material.PaintScale(layer); }
-        private float PxToPt(float px, Bitmap layer) { return px / Material.PaintScale(layer) * 72f / 96f; }
+        private float PtToPx(float pt, Bitmap layer) { return pt * 96f / 72f * (_surf != null ? 1f : Material.PaintScale(layer)); }
+        private float PxToPt(float px, Bitmap layer) { return px / (_surf != null ? 1f : Material.PaintScale(layer)) * 72f / 96f; }
 
         // Host (the "TEXT" panel section): sets the format for new text and, when a
         // text is live, restyles it at once.
